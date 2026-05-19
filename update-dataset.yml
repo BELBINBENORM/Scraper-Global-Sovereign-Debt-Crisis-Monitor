@@ -1,0 +1,80 @@
+name: Update Kaggle Dataset
+
+on:
+  schedule:
+    # runs every Monday at 06:00 UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch: # lets you trigger it manually from the GitHub Actions tab
+
+jobs:
+  run-and-upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      # pull the repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # set up Python
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # install everything the notebook needs
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # run the notebook top to bottom
+      # timeout is 20 minutes - the IMF/WB APIs are slow sometimes
+      - name: Execute notebook
+        run: |
+          jupyter nbconvert \
+            --to notebook \
+            --execute \
+            --inplace \
+            --ExecutePreprocessor.timeout=1200 \
+            --ExecutePreprocessor.kernel_name=python3 \
+            notebook.ipynb
+        env:
+          PYTHONUNBUFFERED: "1"
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+
+      # make sure all expected output files landed on disk
+      - name: Verify outputs exist
+        run: |
+          for f in sovereign_debt_panel.csv ml_features.csv README.md; do
+            if [ -f "$f" ]; then
+              echo "OK  $f  ($(wc -l < "$f") lines)"
+            else
+              echo "MISSING  $f"
+              exit 1
+            fi
+          done
+
+      # write the Kaggle credentials from GitHub secrets
+      - name: Configure Kaggle credentials
+        run: |
+          mkdir -p ~/.kaggle
+          cat <<EOF > ~/.kaggle/kaggle.json
+          {"username":"${{ secrets.KAGGLE_USERNAME }}","key":"${{ secrets.KAGGLE_KEY }}"}
+          EOF
+          chmod 600 ~/.kaggle/kaggle.json
+
+      # gather everything Kaggle needs into one folder
+      - name: Stage output files
+        run: |
+          mkdir -p kaggle_upload
+          cp sovereign_debt_panel.csv ml_features.csv \
+             README.md dataset-metadata.json \
+             kaggle_upload/
+
+      # push a new version to Kaggle
+      - name: Upload to Kaggle
+        run: |
+          kaggle datasets version \
+            --path kaggle_upload \
+            --message "Auto-update $(date -u +%Y-%m-%d)" \
+            --dir-mode zip

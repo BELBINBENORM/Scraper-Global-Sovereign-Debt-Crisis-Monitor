@@ -1,0 +1,66 @@
+{
+  "title": "Global Sovereign Debt Crisis Monitor (2000-Present)",
+  "id": "your-kaggle-username/global-sovereign-debt-crisis-monitor",
+  "licenses": [
+    {
+      "name": "CC0-1.0"
+    }
+  ],
+  "keywords": [
+    "sovereign debt",
+    "fiscal policy",
+    "debt crisis",
+    "government finance",
+    "imf",
+    "world bank",
+    "macroeconomics",
+    "international economics",
+    "default risk",
+    "emerging markets",
+    "panel data",
+    "longitudinal",
+    "machine learning",
+    "time series",
+    "global finance"
+  ],
+  "collaborators": [],
+  "data": [
+    {
+      "description": "Main analysis file - yearly country panel with all debt, fiscal health, and risk signal columns merged. ~180 countries from 2000 to present.",
+      "name": "sovereign_debt_panel",
+      "path": "sovereign_debt_panel.csv",
+      "schema": {
+        "fields": [
+          { "name": "year",                       "title": "Calendar year",                                         "type": "integer" },
+          { "name": "country",                    "title": "Country name (standardised via World Bank)",            "type": "string"  },
+          { "name": "iso3_code",                  "title": "ISO 3166-1 alpha-3 country code",                      "type": "string"  },
+          { "name": "region",                     "title": "World Bank region (South Asia, MENA, ...)",            "type": "string"  },
+          { "name": "income_group",               "title": "High / Upper-middle / Lower-middle / Low",             "type": "string"  },
+          { "name": "govt_debt_pct_gdp",          "title": "Gross govt debt as % of GDP (IMF: GGXWDG_NGDP)",      "type": "number"  },
+          { "name": "govt_debt_usd_bn",           "title": "Gross govt debt in USD billions (IMF: GGXWDG)",        "type": "number"  },
+          { "name": "external_debt_usd_bn",       "title": "External debt stocks in USD billions (WB)",            "type": "number"  },
+          { "name": "external_debt_pct_gdp",      "title": "External debt as % of GDP - calculated",               "type": "number"  },
+          { "name": "debt_per_capita_usd",        "title": "Govt debt per person in USD - calculated",             "type": "number"  },
+          { "name": "fiscal_balance_pct_gdp",     "title": "Net lending/borrowing as % of GDP (IMF: GGXCNL_NGDP)","type": "number"  },
+          { "name": "primary_balance_pct_gdp",    "title": "Primary balance before interest as % GDP (IMF)",       "type": "number"  },
+          { "name": "govt_revenue_pct_gdp",       "title": "Government revenue as % of GDP (IMF: GGR_NGDP)",      "type": "number"  },
+          { "name": "interest_payments_pct_gdp",  "title": "Interest payments on debt as % of GDP (IMF)",         "type": "number"  },
+          { "name": "interest_pct_revenue",       "title": "Interest payments / revenue - debt-trap signal",       "type": "number"  },
+          { "name": "foreign_reserves_usd_bn",    "title": "Foreign exchange reserves in USD billions (WB)",       "type": "number"  },
+          { "name": "reserves_to_external_debt",  "title": "Reserves divided by external debt - solvency buffer", "type": "number"  },
+          { "name": "sp_credit_rating",           "title": "S&P sovereign rating (AAA to D)",                     "type": "string"  },
+          { "name": "sp_rating_numeric",          "title": "S&P rating as integer: AAA=21 down to D=0",           "type": "integer" },
+          { "name": "imf_program_active",         "title": "1 = country under an active IMF loan program",        "type": "integer" },
+          { "name": "imf_loan_usd_bn",            "title": "IMF disbursement amount in USD billions",             "type": "number"  },
+          { "name": "sovereign_default_event",    "title": "1 = a sovereign default occurred this year",          "type": "integer" },
+          { "name": "debt_crisis_risk_score",     "title": "Composite 0-100 risk score (debt + interest + reserves)","type": "number"}
+        ]
+      }
+    },
+    {
+      "description": "ML-ready feature matrix - all main panel columns plus lag features (1 and 2 year), 3 and 5 year rolling averages, rolling std deviation, YoY absolute and percentage changes, and a binary next-year risk target.",
+      "name": "ml_features",
+      "path": "ml_features.csv"
+    }
+  ]
+}
