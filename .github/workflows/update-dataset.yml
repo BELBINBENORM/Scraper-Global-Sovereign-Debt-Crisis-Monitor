@@ -4,7 +4,7 @@ on:
   schedule:
     # runs every Monday at 06:00 UTC
     - cron: "0 6 * * 1"
-  workflow_dispatch: # lets you trigger it manually from the GitHub Actions tab
+  workflow_dispatch: # trigger manually from the Actions tab any time
 
 jobs:
   run-and-upload:
@@ -12,23 +12,19 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      # pull the repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # set up Python
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
 
-      # install everything the notebook needs
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # run the notebook top to bottom
-      # timeout is 20 minutes - the IMF/WB APIs are slow sometimes
+      # execute the notebook - timeout is 20 min, the IMF/WB APIs can be slow
       - name: Execute notebook
         run: |
           jupyter nbconvert \
@@ -42,10 +38,10 @@ jobs:
           PYTHONUNBUFFERED: "1"
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
 
-      # make sure all expected output files landed on disk
+      # confirm both CSVs landed on disk before we try to upload anything
       - name: Verify outputs exist
         run: |
-          for f in sovereign_debt_panel.csv ml_features.csv README.md; do
+          for f in sovereign_debt_panel.csv ml_features.csv; do
             if [ -f "$f" ]; then
               echo "OK  $f  ($(wc -l < "$f") lines)"
             else
@@ -54,27 +50,28 @@ jobs:
             fi
           done
 
-      # write the Kaggle credentials from GitHub secrets
       - name: Configure Kaggle credentials
         run: |
           mkdir -p ~/.kaggle
-          cat <<EOF > ~/.kaggle/kaggle.json
+          cat <<EOF2 > ~/.kaggle/kaggle.json
           {"username":"${{ secrets.KAGGLE_USERNAME }}","key":"${{ secrets.KAGGLE_KEY }}"}
-          EOF
+          EOF2
           chmod 600 ~/.kaggle/kaggle.json
 
-      # gather everything Kaggle needs into one folder
+      # stage the files Kaggle needs - no README, just the data + metadata
       - name: Stage output files
         run: |
           mkdir -p kaggle_upload
-          cp sovereign_debt_panel.csv ml_features.csv \
-             README.md dataset-metadata.json \
-             kaggle_upload/
+          cp sovereign_debt_panel.csv ml_features.csv dataset-metadata.json kaggle_upload/
 
-      # push a new version to Kaggle
+      # push a new version if the dataset already exists,
+      # or create it fresh on the very first run
       - name: Upload to Kaggle
         run: |
           kaggle datasets version \
             --path kaggle_upload \
             --message "Auto-update $(date -u +%Y-%m-%d)" \
+            --dir-mode zip \
+          || kaggle datasets create \
+            --path kaggle_upload \
             --dir-mode zip
